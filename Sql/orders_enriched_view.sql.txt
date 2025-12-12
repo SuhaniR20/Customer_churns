@@ -1,0 +1,11 @@
+#12. Create a view orders_enriched that adds order_year, order_month, order_day, and
+#order_week extracted from order_date.
+CREATE VIEW orders_enriched AS
+SELECT
+    *,
+    YEAR(order_date) AS order_year,
+    MONTH(order_date) AS order_month,
+    DAY(order_date) AS order_day,
+    WEEK(order_date) AS order_week
+FROM ecommerce_orders_raw_table;
+#drop view orders_enriched;

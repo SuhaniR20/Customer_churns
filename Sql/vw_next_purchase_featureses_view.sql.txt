@@ -1,0 +1,60 @@
+CREATE OR REPLACE VIEW vw_next_purchase_featureses AS
+WITH last_orders AS (
+    -- Get last 3 orders per customer
+    SELECT
+        o.customer_id,
+        o.order_id,
+        o.net_amount,
+        o.order_date,
+        ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.order_date DESC) AS rn
+    FROM ecommerce_orders_raw_table o
+),
+last_3_values AS (
+    SELECT
+        customer_id,
+        MAX(CASE WHEN rn = 1 THEN net_amount END) AS last_order_1,
+        MAX(CASE WHEN rn = 2 THEN net_amount END) AS last_order_2,
+        MAX(CASE WHEN rn = 3 THEN net_amount END) AS last_order_3
+    FROM last_orders
+    WHERE rn <= 3
+    GROUP BY customer_id
+),
+order_freq AS (
+    -- Calculate order frequency
+    SELECT
+        customer_id,
+        COUNT(*) AS total_orders,
+        DATEDIFF(MAX(order_date), MIN(order_date)) AS days_active,
+        COUNT(*) / NULLIF(DATEDIFF(MAX(order_date), MIN(order_date)),0) AS orders_per_day
+    FROM ecommerce_orders_raw_table
+    GROUP BY customer_id
+),
+discounts AS (
+    -- Aggregate discount history
+    SELECT
+        customer_id,
+        AVG(discount_amount) AS avg_discount
+    FROM ecommerce_orders_raw_table
+    GROUP BY customer_id
+),
+category_pref AS (
+    -- Customer category preference
+    SELECT
+        oi.customer_id,
+        GROUP_CONCAT(DISTINCT category ORDER BY COUNT(*) DESC) AS category_preference
+    FROM order_items oi
+    JOIN ecommerce_orders_raw_table o ON oi.order_id = o.order_id
+    GROUP BY oi.customer_id
+)
+SELECT
+    l3.customer_id,
+    l3.last_order_1,
+    l3.last_order_2,
+    l3.last_order_3,
+    ofr.orders_per_day AS order_frequency,
+    d.avg_discount AS discount_history,
+    cp.category_preference
+FROM last_3_values l3
+LEFT JOIN order_freq ofr ON l3.customer_id = ofr.customer_id
+LEFT JOIN discounts d ON l3.customer_id = d.customer_id
+LEFT JOIN category_pref cp ON l3.customer_id = cp.customer_id;
