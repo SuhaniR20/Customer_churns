@@ -1,0 +1,21 @@
+create table ecommerce_orders_raw_table(
+order_id varchar(100)  PRIMARY key,
+customer_id varchar(100),
+order_date  date,
+platform   varchar(100),
+category    varchar(100),
+sub_category   varchar(100),
+payment_method  varchar(100),
+quantity     int,
+unit_price   float,
+discount_pct   float,
+city       varchar(100),
+state           varchar(100),
+gross_amount    float,
+net_amount    float,
+file_name      varchar(100),
+user_name      varchar(100),
+Rownumber        int,
+Last_updated_at   timestamp
+);
+
